@@ -1,4 +1,4 @@
-name: Build sentry-native Windows (Full: Debug + Release + crashpad + curl)
+name: Build sentry-native Windows (Debug + Release + crashpad + curl)
 
 on:
   workflow_dispatch:
