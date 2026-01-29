@@ -39,3 +39,11 @@ jobs:
 
     - name: Build Release
       run: cmake --build build --config Release --parallel
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: sentry-native-windows
+        path: |
+          build/Debug/**
+          build/Release/**
