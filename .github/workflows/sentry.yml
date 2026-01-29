@@ -33,7 +33,13 @@ jobs:
           -DSENTRY_BUILD_SHARED_LIBS=ON `
           -DSENTRY_BUILD_TESTS=OFF `
           -DSENTRY_BUILD_EXAMPLES=OFF
-          
+        
+    - name: Build Debug
+      run: cmake --build build --config Debug --parallel
+
+    - name: Build Release
+      run: cmake --build build --config Release --parallel
+
     - name: Collect crashpad_handler
       run: |
         mkdir artifacts
@@ -42,13 +48,7 @@ jobs:
 
         copy build\crashpad_build\handler\Debug\crashpad_handler.exe artifacts\Debug\
         copy build\crashpad_build\handler\Release\crashpad_handler.exe artifacts\Release\
-        
-    - name: Build Debug
-      run: cmake --build build --config Debug --parallel
-
-    - name: Build Release
-      run: cmake --build build --config Release --parallel
-
+    
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
