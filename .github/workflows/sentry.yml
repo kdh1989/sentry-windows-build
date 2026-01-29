@@ -1,4 +1,4 @@
-name: Build sentry-native Windows (Debug + Release + PDB)
+name: Build sentry-native Windows (Debug + Release)
 
 on:
   workflow_dispatch:
@@ -25,13 +25,13 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake ../sentry-native ^
-          -G "Visual Studio 17 2022" ^
-          -A x64 ^
-          -DCMAKE_CXX_STANDARD=17 ^
-          -DSENTRY_BACKEND=crashpad ^
-          -DSENTRY_BUILD_SHARED_LIBS=ON ^
-          -DSENTRY_BUILD_TESTS=OFF ^
+        cmake ../sentry-native `
+          -G "Visual Studio 17 2022" `
+          -A x64 `
+          -DCMAKE_CXX_STANDARD=17 `
+          -DSENTRY_BACKEND=crashpad `
+          -DSENTRY_BUILD_SHARED_LIBS=ON `
+          -DSENTRY_BUILD_TESTS=OFF `
           -DSENTRY_BUILD_EXAMPLES=OFF
 
     - name: Build Debug
