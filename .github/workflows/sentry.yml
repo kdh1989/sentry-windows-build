@@ -33,7 +33,16 @@ jobs:
           -DSENTRY_BUILD_SHARED_LIBS=ON `
           -DSENTRY_BUILD_TESTS=OFF `
           -DSENTRY_BUILD_EXAMPLES=OFF
+          
+    - name: Collect crashpad_handler
+      run: |
+        mkdir artifacts
+        mkdir artifacts\Debug
+        mkdir artifacts\Release
 
+        copy build\crashpad_build\handler\Debug\crashpad_handler.exe artifacts\Debug\
+        copy build\crashpad_build\handler\Release\crashpad_handler.exe artifacts\Release\
+        
     - name: Build Debug
       run: cmake --build build --config Debug --parallel
 
@@ -47,3 +56,4 @@ jobs:
         path: |
           build/Debug/**
           build/Release/**
+          artifacts/**
