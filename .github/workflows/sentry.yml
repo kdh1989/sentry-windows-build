@@ -1,4 +1,4 @@
-name: Build sentry-native Windows (Debug + Release)
+name: Build sentry-native Windows (Debug + Release + crashpad + curl)
 
 on:
   workflow_dispatch:
@@ -18,6 +18,17 @@ jobs:
     - name: Install CMake
       uses: lukka/get-cmake@latest
 
+    - name: Clone vcpkg
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git
+        cd vcpkg
+        bootstrap-vcpkg.bat
+
+    - name: Install curl (vcpkg)
+      run: |
+        cd vcpkg
+        vcpkg install curl:x64-windows
+
     - name: Clone sentry-native
       run: git clone --recursive https://github.com/getsentry/sentry-native.git
 
@@ -30,10 +41,12 @@ jobs:
           -A x64 `
           -DCMAKE_CXX_STANDARD=17 `
           -DSENTRY_BACKEND=crashpad `
+          -DSENTRY_TRANSPORT=curl `
           -DSENTRY_BUILD_SHARED_LIBS=ON `
           -DSENTRY_BUILD_TESTS=OFF `
-          -DSENTRY_BUILD_EXAMPLES=OFF
-        
+          -DSENTRY_BUILD_EXAMPLES=OFF `
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake
+
     - name: Build Debug
       run: cmake --build build --config Debug --parallel
 
@@ -48,7 +61,7 @@ jobs:
 
         copy build\crashpad_build\handler\Debug\crashpad_handler.exe artifacts\Debug\
         copy build\crashpad_build\handler\Release\crashpad_handler.exe artifacts\Release\
-    
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
