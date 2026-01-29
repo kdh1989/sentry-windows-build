@@ -1,46 +1,75 @@
-name: Build Sentry Native Windows
+name: Build sentry-native VS2019 (Debug + Release + PDB)
 
 on:
+  push:
+    branches: [ "main" ]
+  pull_request:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: windows-2022
+  windows-build:
+    runs-on: windows-2019
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-    - name: Install build tools
-      run: |
-        choco install cmake ninja -y
+    - name: Setup MSVC v142 (VS2019)
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+        toolset: v142
+
+    - name: Install CMake
+      uses: lukka/get-cmake@latest
 
     - name: Clone sentry-native
       run: |
-        git clone https://github.com/getsentry/sentry-native.git
+        git clone --recursive https://github.com/getsentry/sentry-native.git
 
-    - name: Configure
+    - name: Configure (VS2019, C++17, crashpad)
       run: |
-        cd sentry-native
-        cmake -B build -S . ^
+        mkdir build
+        cd build
+        cmake ../sentry-native ^
+          -G "Visual Studio 16 2019" ^
+          -A x64 ^
+          -T v142 ^
+          -DCMAKE_CXX_STANDARD=17 ^
           -DSENTRY_BACKEND=crashpad ^
-          -DSENTRY_TRANSPORT=curl ^
           -DSENTRY_BUILD_SHARED_LIBS=ON ^
-          -DCMAKE_BUILD_TYPE=Release ^
-          -GNinja
+          -DSENTRY_BUILD_TESTS=OFF ^
+          -DSENTRY_BUILD_EXAMPLES=OFF
 
-    - name: Build
+    - name: Build Debug
       run: |
-        cd sentry-native
-        cmake --build build
+        cmake --build build --config Debug --parallel
+
+    - name: Build Release
+      run: |
+        cmake --build build --config Release --parallel
 
     - name: Collect artifacts
       run: |
-        mkdir out
-        copy sentry-native\build\*.dll out\ || echo dll not found
-        copy sentry-native\build\*.lib out\ || echo lib not found
-        copy sentry-native\build\crashpad_handler.exe out\ || echo crashpad not found
+        mkdir artifacts\Debug
+        mkdir artifacts\Release
 
-    - uses: actions/upload-artifact@v4
+        copy build\Debug\sentry.dll artifacts\Debug\ || exit 0
+        copy build\Debug\sentry.lib artifacts\Debug\ || exit 0
+        copy build\Debug\sentry.pdb artifacts\Debug\ || exit 0
+
+        copy build\crashpad\handler\Debug\crashpad_handler.exe artifacts\Debug\ || exit 0
+        copy build\crashpad\handler\Debug\crashpad_handler.pdb artifacts\Debug\ || exit 0
+
+        copy build\Release\sentry.dll artifacts\Release\ || exit 0
+        copy build\Release\sentry.lib artifacts\Release\ || exit 0
+        copy build\Release\sentry.pdb artifacts\Release\ || exit 0
+
+        copy build\crashpad\handler\Release\crashpad_handler.exe artifacts\Release\ || exit 0
+        copy build\crashpad\handler\Release\crashpad_handler.pdb artifacts\Release\ || exit 0
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
       with:
-        name: sentry-windows-build
-        path: out
+        name: sentry-vs2019-cpp17-debug-release-pdb
+        path: artifacts/
