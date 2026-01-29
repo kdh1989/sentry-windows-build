@@ -1,4 +1,4 @@
-name: Build sentry-native Windows (Debug + Release + crashpad + curl)
+name: Build sentry-native Windows (Full: Debug + Release + crashpad + curl)
 
 on:
   workflow_dispatch:
@@ -33,6 +33,7 @@ jobs:
       run: git clone --recursive https://github.com/getsentry/sentry-native.git
 
     - name: Configure
+      shell: powershell
       run: |
         mkdir build
         cd build
@@ -53,19 +54,39 @@ jobs:
     - name: Build Release
       run: cmake --build build --config Release --parallel
 
-    - name: Collect crashpad_handler
+    - name: Collect crashpad_handler (safe)
+      shell: powershell
       run: |
-        mkdir artifacts
-        mkdir artifacts\Debug
-        mkdir artifacts\Release
+        Write-Host "Searching crashpad_handler.exe ..."
 
-        copy build\crashpad_build\handler\Debug\crashpad_handler.exe artifacts\Debug\
-        copy build\crashpad_build\handler\Release\crashpad_handler.exe artifacts\Release\
+        $files = Get-ChildItem -Path ${{ github.workspace }} -Recurse -Filter crashpad_handler.exe
+
+        if ($files.Count -eq 0) {
+          Write-Error "crashpad_handler.exe not found!"
+          exit 1
+        }
+
+        $files | ForEach-Object {
+          Write-Host "Found: $($_.FullName)"
+        }
+
+        mkdir artifacts -Force | Out-Null
+        mkdir artifacts\Debug -Force | Out-Null
+        mkdir artifacts\Release -Force | Out-Null
+
+        foreach ($f in $files) {
+          if ($f.FullName -match "Debug") {
+            Copy-Item $f.FullName artifacts\Debug\ -Force
+          }
+          if ($f.FullName -match "Release") {
+            Copy-Item $f.FullName artifacts\Release\ -Force
+          }
+        }
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: sentry-native-windows
+        name: sentry-native-windows-full
         path: |
           build/Debug/**
           build/Release/**
