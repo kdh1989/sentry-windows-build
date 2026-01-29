@@ -1,0 +1,46 @@
+name: Build Sentry Native Windows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install build tools
+      run: |
+        choco install cmake ninja -y
+
+    - name: Clone sentry-native
+      run: |
+        git clone https://github.com/getsentry/sentry-native.git
+
+    - name: Configure
+      run: |
+        cd sentry-native
+        cmake -B build -S . ^
+          -DSENTRY_BACKEND=crashpad ^
+          -DSENTRY_TRANSPORT=curl ^
+          -DSENTRY_BUILD_SHARED_LIBS=ON ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -GNinja
+
+    - name: Build
+      run: |
+        cd sentry-native
+        cmake --build build
+
+    - name: Collect artifacts
+      run: |
+        mkdir out
+        copy sentry-native\build\*.dll out\ || echo dll not found
+        copy sentry-native\build\*.lib out\ || echo lib not found
+        copy sentry-native\build\crashpad_handler.exe out\ || echo crashpad not found
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: sentry-windows-build
+        path: out
